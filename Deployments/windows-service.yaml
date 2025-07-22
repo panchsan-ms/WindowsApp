@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: windows-webapp-service
+  namespace: windows-ns
+spec:
+  type: LoadBalancer
+  selector:
+    app: windows-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

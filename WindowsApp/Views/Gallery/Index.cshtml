@@ -1,0 +1,79 @@
+﻿@model IEnumerable<WindowsApp.Models.Photo>
+
+@{
+    ViewBag.Title = "Windows Photo Gallery";
+    var random = new Random();
+    var heights = new[] { 180, 220, 260, 300, 350, 480, 600 };
+}
+
+<h2 class="mb-4">
+    <span class="mr-2">📸</span>
+    <strong>Featured Photo Collection</strong>
+</h2>
+
+<div class="masonry-grid">
+    @foreach (var photo in Model)
+    {
+        var height = heights[random.Next(heights.Length)];
+        <div class="card masonry-item shadow-sm mb-4">
+            <img src="@photo.ImageUrl"
+                 class="card-img-top"
+                 alt="Photo of @photo.Location"
+                 style="object-fit: cover; height: @(height)px; width: 100%;" />
+
+            <div class="card-body">
+                <p class="card-title fw-bold text-primary mb-2">
+                    <i class="fas fa-map-marker-alt text-danger me-1"></i> @photo.Location
+                </p>
+                <p class="card-text text-muted small">@photo.Description</p>
+                <a href="@Url.Action("Details", "Gallery", new { id = photo.Id })" class="btn btn-outline-primary btn-sm">
+                    View Details
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Font Awesome CDN (ideally in _Layout.cshtml, but added here for completeness) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<style>
+    .masonry-grid {
+        column-count: 3;
+        column-gap: 1.5rem;
+    }
+
+    @@media (max-width: 992px) {
+        .masonry-grid {
+            column-count: 2;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .masonry-grid {
+            column-count: 1;
+        }
+    }
+
+    .masonry-item {
+        display: inline-block;
+        width: 100%;
+        break-inside: avoid;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .masonry-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .card-title i {
+        margin-right: 4px;
+    }
+</style>

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: windows-webapp
+  namespace: windows-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: windows-webapp
+  template:
+    metadata:
+      labels:
+        app: windows-webapp
+    spec:
+      nodeSelector:
+        "kubernetes.io/os": windows
+      containers:
+      - name: windows-container
+        image: akswindemoreg.azurecr.io/windows-container-app:v1
+        ports:
+        - containerPort: 80
