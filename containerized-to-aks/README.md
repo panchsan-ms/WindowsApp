@@ -17,14 +17,14 @@
 3. [**Planning**](#3-planning)
 4. [**Pre-requisites**](#4-pre-requisites)
 5. [**Execution: Migration Steps for Containerized Apps on AKS**](#5.0-execution-migration-steps-for-containerized-apps-on-aks)
-- [5.1 SCENARIO - LINUX Containers)](#51-scenario---linux-containers)
+- [5.1 SCENARIO - LINUX Containers](#51-scenario---linux-containers)
    - [5.1.1 Prepare an application for Azure Kubernetes Service (AKS)](#511-prepare-an-application-for-azure-kubernetes-service-aks)
    - [5.1.2 Create an Azure Container Registry (ACR) and push build images.](#512-create-an-azure-container-registry-acr-and-push-build-images)  
    - [5.1.3 Create an Azure Kubernetes Service (AKS) cluster.](#513-create-an-azure-kubernetes-service-aks-cluster)
    - [5.1.4 Deploy an application to Azure Kubernetes Service (AKS)](#514-deploy-an-application-to-azure-kubernetes-service-aks)
    - [5.1.5 Use Persistent Volume (PV) and Persistent Volume Claim (PVC) in the deployment.](#515-use-persistent-volume-pv-and-persistent-volume-claim-pvc-in-the-deployment)
 
- - [5.2 SCENARIO - WINDOWS Containers)](#52-scenario---windows-containers)
+ - [5.2 SCENARIO - WINDOWS Containers](#52-scenario---windows-containers)
 
     - [5.1.1 Prepare an application for Azure Kubernetes Service (AKS)](#521--prepare-a-windows-based-application-for-azure-kubernetes-service)
     - [5.1.2 Create an Azure Container Registry (ACR) and push build images](#522create-an-azure-container-registry-acr-and-push-build-images)
