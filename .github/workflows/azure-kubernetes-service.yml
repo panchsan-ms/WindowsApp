@@ -13,55 +13,53 @@ env:
   DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
 
 jobs:
-  # Job 1 : Build and push the image to ACR
-  DeploytoAKS:
+  DeployWindowsContainertoAKS:
     permissions:
       contents: read
       id-token: write
     runs-on: windows-2022
     environment: development
+
     steps:
-      # Checks out the repository this file is in
-      
-      - name: Check out repository
-        uses: actions/checkout@v4
-      
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v4.0.1
-        with:
-          dotnet-version: 8.0.x
-          
-      # Build .NET application 
-      - name: dotnet build
-        run: dotnet build WindowsApp.sln -c release   
-        
-      # Logs in with your Azure credentials
-      - name: Azure login
-        uses: azure/login@v1.4.6
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}      
-  
-        # Builds and pushes an image up to your Azure Container Registry
-      - name: Build and push image to ACR
-        run: |
-          az acr build --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.RESOURCE_GROUP }} . 
-    
-      # Retrieves your Azure Kubernetes Service cluster's kubeconfig file
-      - name: Get K8s context
-        uses: azure/aks-set-context@v3
-        with:
-          creds: '${{secrets.AZURE_CREDENTIALS}}'
-          resource-group: ${{ env.RESOURCE_GROUP }}
-          cluster-name: ${{ env.CLUSTER_NAME }}
-      
-      # Deploys application based on given manifest file
-      - name: Deploys application
-        uses: Azure/k8s-deploy@v4
-        with:
-          action: deploy
-          namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
-          manifests: |
-            Deployments/windows-deployment.yaml
-            Deployments/windows-service.yaml
-          images: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}    
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4.0.1
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Build with MSBuild
+      run: |
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" WindowsApp.sln /p:Configuration=Release
+
+    - name: Azure login
+      uses: azure/login@v1.4.6
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Build and push image to ACR
+      run: |
+        az acr build --image ${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.RESOURCE_GROUP }} .
+
+    - name: Get K8s context
+      uses: azure/aks-set-context@v3
+      with:
+        creds: '${{ secrets.AZURE_CREDENTIALS }}'
+        resource-group: ${{ env.RESOURCE_GROUP }}
+        cluster-name: ${{ env.CLUSTER_NAME }}
+
+    - name: Create namespace if not exists
+      run: |
+        kubectl get namespace ${{ env.DEPLOYMENT_NAMESPACE }} || kubectl create namespace ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Deploy application to AKS
+      uses: Azure/k8s-deploy@v4
+      with:
+        action: deploy
+        namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
+        manifests: |
+          Deployments/windows-deployment.yaml
+          Deployments/windows-service.yaml
+        images: |
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
