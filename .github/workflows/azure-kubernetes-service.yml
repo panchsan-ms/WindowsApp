@@ -33,7 +33,7 @@ jobs:
           
       # Build .NET application 
       - name: dotnet build
-        run: dotnet build WindowsApp/WindowsApp.sln -c release   
+        run: dotnet build WindowsApp.sln -c release   
         
       # Logs in with your Azure credentials
       - name: Azure login
