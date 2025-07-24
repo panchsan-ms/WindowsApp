@@ -1,0 +1,66 @@
+name: Build and deploy an app to AKS
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  AZURE_CONTAINER_REGISTRY: "akswindemoreg"
+  CONTAINER_NAME: "windows-container-app"
+  RESOURCE_GROUP: "rg-apps-passmig-asia-v-santanup-demo"
+  CLUSTER_NAME: "demowinclu001"
+  DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
+  CONTAINER_TAG: "v1"
+
+jobs:
+  DeployWindowsContainerToAKS:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: windows-2022
+    environment: development
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Azure login
+      uses: azure/login@v1.4.6
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set AKS context
+      uses: azure/aks-set-context@v3
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        resource-group: ${{ env.RESOURCE_GROUP }}
+        cluster-name: ${{ env.CLUSTER_NAME }}
+
+    - name: Create namespace if not exists
+      run: |
+        kubectl get namespace ${{ env.DEPLOYMENT_NAMESPACE }} || kubectl create namespace ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Deploy application to AKS
+      uses: Azure/k8s-deploy@v4
+      with:
+        action: deploy
+        namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
+        manifests: |
+          Deployments/windows-deployment.yaml
+          Deployments/windows-service.yaml
+        images: |
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ env.CONTAINER_TAG }}
+
+    - name: Verify deployment rollout
+      run: |
+        kubectl rollout status deployment/windows-deployment -n ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Get pods
+      run: |
+        kubectl get pods -n ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Print logs from first pod
+      run: |
+        POD_NAME=$(kubectl get pods -n ${{ env.DEPLOYMENT_NAMESPACE }} -l app=windows-container-app -o jsonpath="{.items[0].metadata.name}")
+        kubectl logs $POD_NAME -n ${{ env.DEPLOYMENT_NAMESPACE }}
