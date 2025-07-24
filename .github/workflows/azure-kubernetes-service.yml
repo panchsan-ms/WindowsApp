@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     environment: development
     steps:
       # Checks out the repository this file is in
@@ -33,7 +33,7 @@ jobs:
           
       # Build .NET application 
       - name: dotnet build
-        run: dotnet build WindowsApp/WindowsApp.csproj -c release   
+        run: dotnet build WindowsApp/WindowsApp.sln -c release   
         
       # Logs in with your Azure credentials
       - name: Azure login
