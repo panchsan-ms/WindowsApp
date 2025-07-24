@@ -30,10 +30,10 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Get K8s context
+    - name: Set AKS context
       uses: azure/aks-set-context@v3
       with:
-        creds: '${{ secrets.AZURE_CREDENTIALS }}'
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
         resource-group: ${{ env.RESOURCE_GROUP }}
         cluster-name: ${{ env.CLUSTER_NAME }}
 
@@ -51,3 +51,16 @@ jobs:
           Deployments/windows-service.yaml
         images: |
           ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ env.CONTAINER_TAG }}
+
+    - name: Verify deployment rollout
+      run: |
+        kubectl rollout status deployment/windows-deployment -n ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Get pods
+      run: |
+        kubectl get pods -n ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Print logs from first pod
+      run: |
+        POD_NAME=$(kubectl get pods -n ${{ env.DEPLOYMENT_NAMESPACE }} -l app=windows-container-app -o jsonpath="{.items[0].metadata.name}")
+        kubectl logs $POD_NAME -n ${{ env.DEPLOYMENT_NAMESPACE }}
