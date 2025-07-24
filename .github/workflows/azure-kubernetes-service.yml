@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    runs-on: windows-latest
+    runs-on: windows-2022
     environment: development
     steps:
       # Checks out the repository this file is in
