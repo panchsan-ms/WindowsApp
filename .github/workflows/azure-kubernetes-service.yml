@@ -10,7 +10,7 @@ env:
   CONTAINER_NAME: "windows-container-app"
   RESOURCE_GROUP: "rg-apps-passmig-asia-v-santanup-demo"
   CLUSTER_NAME: "demowinclu001"
-  DEPLOYMENT_NAMESPACE: "my-aks-namespace-github-actions"
+  DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
 
 jobs:
   # Job 1 : Build and push the image to ACR
@@ -33,7 +33,7 @@ jobs:
           
       # Build .NET application 
       - name: dotnet build
-        run: dotnet build WindowsApp/WindowsApp.sln -c release   
+        run: dotnet build WindowsApp/WindowsApp.csproj -c release   
         
       # Logs in with your Azure credentials
       - name: Azure login
