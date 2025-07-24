@@ -47,8 +47,8 @@ jobs:
         action: deploy
         namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
         manifests: |
-          Deployments/windows-deployment.yaml
-          Deployments/windows-service.yaml
+          Deployments/01-windows-deployment.yaml
+          Deployments/02-windows-service.yaml
         images: |
           ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ env.CONTAINER_TAG }}
 
