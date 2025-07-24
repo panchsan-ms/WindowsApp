@@ -11,6 +11,7 @@ env:
   RESOURCE_GROUP: "rg-apps-passmig-asia-v-santanup-demo"
   CLUSTER_NAME: "demowinclu001"
   DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
+  CONTAINER_TAG: "v1"
 
 jobs:
   DeployWindowsContainertoAKS:
@@ -24,23 +25,10 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v4
 
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4.0.1
-      with:
-        dotnet-version: 8.0.x
-
-    - name: Build with MSBuild
-      run: |
-        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" WindowsApp.sln /p:Configuration=Release
-
     - name: Azure login
       uses: azure/login@v1.4.6
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Build and push image to ACR
-      run: |
-        az acr build --image ${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.RESOURCE_GROUP }} .
 
     - name: Get K8s context
       uses: azure/aks-set-context@v3
@@ -62,4 +50,4 @@ jobs:
           Deployments/windows-deployment.yaml
           Deployments/windows-service.yaml
         images: |
-          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ env.CONTAINER_TAG }}
