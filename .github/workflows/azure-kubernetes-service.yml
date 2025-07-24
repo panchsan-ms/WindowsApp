@@ -14,7 +14,7 @@ env:
   CONTAINER_TAG: "v1"
 
 jobs:
-  DeployWindowsContainertoAKS:
+  DeployWindowsContainer2AKS:
     permissions:
       contents: read
       id-token: write
