@@ -54,7 +54,7 @@ jobs:
 
     - name: Verify deployment rollout
       run: |
-        kubectl rollout status deployment/windows-deployment -n ${{ env.DEPLOYMENT_NAMESPACE }}
+        kubectl rollout status deployment/windows-webapp -n ${{ env.DEPLOYMENT_NAMESPACE }}
 
     - name: Get pods
       run: |
