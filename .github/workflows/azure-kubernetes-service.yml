@@ -59,8 +59,3 @@ jobs:
     - name: Get pods
       run: |
         kubectl get pods -n ${{ env.DEPLOYMENT_NAMESPACE }}
-
-    - name: Print logs from first pod
-      run: |
-        POD_NAME=$(kubectl get pods -n ${{ env.DEPLOYMENT_NAMESPACE }} -l app=windows-container-app -o jsonpath="{.items[0].metadata.name}")
-        kubectl logs $POD_NAME -n ${{ env.DEPLOYMENT_NAMESPACE }}
