@@ -35,7 +35,7 @@ stages:
       displayName: 'Create Namespace (if not exists)'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'AKSConnection' # Replace with your AKS service connection
+        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc' # Replace with your AKS service connection
         namespace: default
         command: apply
         useConfigurationFile: true
@@ -49,7 +49,7 @@ stages:
       displayName: 'Deploy Manifest Files'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'AKSConnection'
+        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc'
         namespace: $(DEPLOYMENT_NAMESPACE)
         command: apply
         useConfigurationFile: true
@@ -61,7 +61,7 @@ stages:
       displayName: 'Check Rollout Status'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'AKSConnection'
+        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc'
         namespace: $(DEPLOYMENT_NAMESPACE)
         command: rollout
         arguments: 'status deployment/windows-deployment'
