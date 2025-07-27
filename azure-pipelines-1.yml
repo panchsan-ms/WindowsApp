@@ -1,0 +1,67 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
+  AZURE_CONTAINER_REGISTRY: "akswindemoreg.azurecr.io"
+  CONTAINER_NAME: "windows-container-app"
+  CONTAINER_TAG: "v1"
+  IMAGE_FULL_PATH: "$(AZURE_CONTAINER_REGISTRY)/$(CONTAINER_NAME):$(CONTAINER_TAG)"
+
+pool:
+  vmImage: 'windows-2022'
+
+stages:
+- stage: Deploy
+  displayName: Deploy Windows Container to AKS
+  jobs:
+  - job: DeployJob
+    displayName: Deploy to AKS
+    steps:
+
+    - task: AzureCLI@2
+      displayName: 'Login to Azure and ACR'
+      inputs:
+        azureSubscription: 'AzureServiceConnection' # Replace with your Azure RM connection
+        scriptType: 'ps'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az account show
+          az acr login --name $(AZURE_CONTAINER_REGISTRY)
+
+    - task: Kubernetes@1
+      displayName: 'Create Namespace (if not exists)'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc' # Replace with your AKS service connection
+        namespace: default
+        command: apply
+        useConfigurationFile: true
+        configuration: |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: $(DEPLOYMENT_NAMESPACE)
+
+    - task: Kubernetes@1
+      displayName: 'Deploy Manifest Files'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc'
+        namespace: $(DEPLOYMENT_NAMESPACE)
+        command: apply
+        useConfigurationFile: true
+        configuration: |
+          Deployment/windows-deployment.yaml
+          Deployment/windows-service.yaml
+
+    - task: Kubernetes@1
+      displayName: 'Check Rollout Status'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc'
+        namespace: $(DEPLOYMENT_NAMESPACE)
+        command: rollout
+        arguments: 'status deployment/windows-deployment'
