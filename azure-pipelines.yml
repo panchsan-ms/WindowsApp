@@ -31,7 +31,6 @@ stages:
           az account show
           az acr login --name $(AZURE_CONTAINER_REGISTRY)
 
-    # Create namespace if not exists
     - task: Kubernetes@1
       displayName: 'Create Namespace (if not exists)'
       inputs:
@@ -40,11 +39,8 @@ stages:
         namespace: default
         command: apply
         useConfigurationFile: true
-        configuration: |
-          apiVersion: v1
-          kind: Namespace
-          metadata:
-            name: $(DEPLOYMENT_NAMESPACE)
+        configuration: Deployments/00-windows-deployment.yaml
+
 
     # Deploy manifest files with image substitution
     - task: KubernetesManifest@1
