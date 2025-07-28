@@ -31,16 +31,6 @@ stages:
           az account show
           az acr login --name $(AZURE_CONTAINER_REGISTRY)
 
-    - task: Kubernetes@1
-      displayName: 'Create Namespace (if not exists)'
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns'
-        namespace: default
-        command: apply
-        useConfigurationFile: true
-        configuration: Deployments/00-windows-namespace.yaml
-
 
     # Deploy manifest files with image substitution
     - task: KubernetesManifest@1
