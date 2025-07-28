@@ -9,10 +9,12 @@ variables:
   CONTAINER_NAME: "windows-container-app"
   CONTAINER_TAG: "v1"
   IMAGE_FULL_PATH: "$(AZURE_CONTAINER_REGISTRY)/$(CONTAINER_NAME):$(CONTAINER_TAG)"
+
   AKS_CLUSTER_NAME: "demowinclu001"
   AKS_RESOURCE_GROUP: "rg-apps-passmig-asia-v-santanup-demo"
-  AZURE_SUBSCRIPTION: "aks-windows-demo-panchsan-sc" # Azure RM Service Connection Name
-  KUBE_SERVICE_CONNECTION: "demowinclu001-aks-windows-ado-ns" # Kubernetes Service Connection Name
+
+  AZURE_SUBSCRIPTION: "aks-windows-demo-panchsan-sc" # Azure RM Service Connection
+  KUBE_SERVICE_CONNECTION: "demowinclu001-aks-windows-ado-ns" # Kubernetes Service Connection
 
 pool:
   vmImage: 'windows-2022'
@@ -25,13 +27,13 @@ stages:
     displayName: Deploy to AKS
     steps:
 
-    # Install kubectl if not available
+    # Step 1: Install kubectl if not present
     - task: KubectlInstaller@0
       displayName: 'Install kubectl'
       inputs:
         kubectlVersion: 'latest'
 
-    # Login to Azure and ACR
+    # Step 2: Login to Azure and ACR
     - task: AzureCLI@2
       displayName: 'Login to Azure and ACR'
       inputs:
@@ -42,21 +44,21 @@ stages:
           echo "Logging into Azure"
           az acr login --name $(AZURE_CONTAINER_REGISTRY)
 
-    # Set kubectl context and create namespace if it doesn't exist
+    # Step 3: Set AKS context and create namespace if missing
     - task: AzureCLI@2
-      displayName: 'Set AKS context and create namespace'
+      displayName: 'Set AKS Context & Create Namespace'
       inputs:
         azureSubscription: $(AZURE_SUBSCRIPTION)
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Setting AKS context"
+          echo "Setting AKS context..."
           az aks get-credentials --resource-group $(AKS_RESOURCE_GROUP) --name $(AKS_CLUSTER_NAME) --overwrite-existing
 
-          echo "Creating namespace if not exists"
+          echo "Checking/Creating Namespace: $(DEPLOYMENT_NAMESPACE)"
           kubectl get namespace $(DEPLOYMENT_NAMESPACE) || kubectl create namespace $(DEPLOYMENT_NAMESPACE)
 
-    # Deploy manifest with image substitution
+    # Step 4: Deploy manifests with image substitution
     - task: KubernetesManifest@1
       displayName: 'Deploy Windows Web App'
       inputs:
@@ -69,7 +71,7 @@ stages:
         containers: |
           $(IMAGE_FULL_PATH)
 
-    # Wait for rollout completion
+    # Step 5: Wait for rollout to complete
     - task: Kubernetes@1
       displayName: 'Wait for Deployment Rollout'
       inputs:
