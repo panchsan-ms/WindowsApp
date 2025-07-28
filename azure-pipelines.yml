@@ -24,26 +24,19 @@ stages:
     - task: AzureCLI@2
       displayName: 'Login to Azure and ACR'
       inputs:
-        azureSubscription: 'aks-windows-demo-panchsan-sc' # Replace with your Azure RM connection
+        azureSubscription: 'aks-windows-demo-panchsan-sc' # Azure RM connection
         scriptType: 'ps'
         scriptLocation: 'inlineScript'
         inlineScript: |
           az account show
           az acr login --name $(AZURE_CONTAINER_REGISTRY)
 
-
-    - task: KubernetesManifest@1
-      inputs:
-        action: 'deploy'
-        connectionType: 'kubernetesServiceConnection'
-        kubernetesServiceConnection: 'demowinclu001-aks-windows-ado-ns'
-        namespace: 'ascasc'
-
+    # Create namespace if not exists
     - task: Kubernetes@1
       displayName: 'Create Namespace (if not exists)'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns' # Replace with your AKS service connection
+        kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns'
         namespace: default
         command: apply
         useConfigurationFile: true
@@ -53,20 +46,23 @@ stages:
           metadata:
             name: $(DEPLOYMENT_NAMESPACE)
 
-    - task: Kubernetes@1
-      displayName: 'Deploy Manifest Files'
+    # Deploy manifest files with image substitution
+    - task: KubernetesManifest@1
+      name: DeployToAks
+      displayName: 'Deploy Windows Web App'
       inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns'
+        action: deploy
+        kubernetesServiceConnection: 'demowinclu001-aks-windows-ado-ns'
         namespace: $(DEPLOYMENT_NAMESPACE)
-        command: apply
-        useConfigurationFile: true
-        configuration: |
+        manifests: |
           Deployments/01-windows-deployment.yaml
           Deployments/02-windows-service.yaml
+        containers: |
+          $(IMAGE_FULL_PATH)
 
+    # Wait for rollout to complete
     - task: Kubernetes@1
-      displayName: 'Check Rollout Status'
+      displayName: 'Wait for Deployment Rollout'
       inputs:
         connectionType: 'Kubernetes Service Connection'
         kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns'
