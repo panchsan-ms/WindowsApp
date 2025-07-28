@@ -62,8 +62,8 @@ stages:
         command: apply
         useConfigurationFile: true
         configuration: |
-          Deployment/windows-deployment.yaml
-          Deployment/windows-service.yaml
+          Deployments/01-windows-deployment.yaml
+          Deployments/02-windows-service.yaml
 
     - task: Kubernetes@1
       displayName: 'Check Rollout Status'
