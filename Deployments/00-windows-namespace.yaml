@@ -1,4 +1,4 @@
-# windows-namespace.yaml
+# windows-namespace.yaml1
 apiVersion: v1
 kind: Namespace
 metadata:
