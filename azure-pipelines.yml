@@ -4,7 +4,7 @@ trigger:
       - main
 
 variables:
-  DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
+  DEPLOYMENT_NAMESPACE: "windows-aks-ns-devops"
   AZURE_CONTAINER_REGISTRY: "akswindemoreg.azurecr.io"
   CONTAINER_NAME: "windows-container-app"
   CONTAINER_TAG: "v1"
@@ -39,7 +39,7 @@ stages:
         namespace: default
         command: apply
         useConfigurationFile: true
-        configuration: Deployments/00-windows-deployment.yaml
+        configuration: Deployments/00-windows-namespace.yaml
 
 
     # Deploy manifest files with image substitution
