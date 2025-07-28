@@ -31,9 +31,15 @@
     - [5.1.3 Create an Azure Kubernetes Service (AKS) cluster](#523-create-aks-cluster-with-windows-node-pool)
     - [5.1.4 Deploy an application to Azure Kubernetes Service (AKS)](#524-deploy-the-application-to-azure-kubernetes-service-aks)
 
-6. [**Deploying application using CICD Pipelines:**](#6-deploying-application-using-cicd-pipelines)
-   - [6.1 Deployment using GITHUB actions](#61-deployment-using-github-actions)
-   - [6.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)](#62-deployment-using-azure-pipelines-yaml-azure-devops-pipelines)  
+6. [**Deploying application using CICD Pipelines:**](#6-deploying-application-using-cicd-pipelines)    
+
+  - [6.1 SCENARIO - LINUX Containers](#61-scenario---linux-containers)
+    - [6.1.1 Deployment using GITHUB actions](#611-deployment-using-github-actions)
+    - [6.1.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)](#612-deployment-using-azure-pipelines-yaml-azure-devops-pipelines)  
+
+  - [6.2 SCENARIO - WINDOWS Containers](#61-scenario---linux-containers)
+    - [6.2.1 Deployment using GITHUB actions](#621-deployment-using-github-actions)
+    - [6.2.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)](#622-deployment-using-azure-pipelines-yaml-azure-devops-pipelines)
    - [6.3 Deployment using Azure Classic Pipelines (Azure DevOps Pipelines)](#63-deployment-using-azure-classic-pipelines-azure-devops-pipelines)
        - [6.3.1 Push our existing code to azure repositories:](#631-push-our-existing-code-to-azure-repositories)
        - [6.3.2 Create classic pipeline to deploy the application to AKS Cluster:](#632-create-classic-pipeline-to-deploy-the-application-to-aks-cluster) 
@@ -817,21 +823,24 @@ kubectl apply -f windows-service.yaml
 
    So far, we have done all the deployments manually. Let’s automate this process using GitHub actions and Azure Devops pipelines.
 
-### 6.1 Deployment using GITHUB actions
+### 6.1. SCENARIO - LINUX Containers  
+
+### 6.1.1. Deployment using GITHUB actions
+
 
 1. Create a new namespace and call it as “my-aks-namespace-github-actions”. We will deploy our application inside this namespace.
 
-  ```bash
-  kubectl create namespace my-aks-namespace-github-actions
-  ```
+    ```bash
+    kubectl create namespace my-aks-namespace-github-actions
+    ```
 
-#### 2. Configure GitHub Action -
+2. Configure GitHub Action -
 
    GitHub Actions workflows run into Environments and they can reference an environment to use the environment’s protection rules and secrets. In this step, you will add a new Environment named development. Go to the repository on GitHub, go to the top-right menu, click Settings. Then from the left-side menu, click Environments, then from the right side click new environment.
 
    ![Github Configuration](./images/githubconfig.png)
 
-#### 3. Create GitHub Secret -
+3. Create GitHub Secret -
 
    In the result screen from your just created GitHub Environment development, you will see all details of the newly created Environment. Navigate to the bottom of section, go to Environment secrets and click Add Secret to add new secrets.
 
@@ -846,131 +855,131 @@ kubectl apply -f windows-service.yaml
     }    
    ```
 
-![Environment Secrets](./images/environmentsecrets.png)
+    ![Environment Secrets](./images/environmentsecrets.png)
 
-#### 4. Add GitHub Action - 
+4. Add GitHub Action - 
 Everything is now ready to start your automation with GitHub Action to AKS. GitHub actions workflows and jobs are defined with a YAML file containing all the needed steps.
 
+    Now navigate to GitHub repository and go to “Action” and click on “New Workflow” option. The following page will come
 
-Now navigate to GitHub repository and go to “Action” and click on “New Workflow” option. The following page will come
+    ![Workflow](./images/workflow.png)
 
-![Workflow](./images/workflow.png)
+    Use this template and modify the template based on your needs. Below is the sample template to deploy our application to “my-aks-namespace-github-actions”.
 
-Use this template and modify the template based on your needs. Below is the sample template to deploy our application to “my-aks-namespace-github-actions”.
-```yaml
-            Aks-deployment-workflow.yaml:
-            ----------------------------
+    ```yaml
+                Aks-deployment-workflow.yaml:
+                ----------------------------
 
-            name: Build and deploy an app to AKS
+                name: Build and deploy an app to AKS
 
-            on:
-              push:
-                branches: ["main"]
-              workflow_dispatch:
-            
-            env:
-              AZURE_CONTAINER_REGISTRY: "name-of-registry"
-              AZURE_CONTAINER_REGISTRY_USERNAME: "acr-username"
-              AZURE_CONTAINER_REGISTRY_PASSWORD: "acr-password"
-              CONTAINER_NAME: "image-name"
-              RESOURCE_GROUP: "RG-name"
-              CLUSTER_NAME: "cluster-name"
-              DEPLOYMENT_NAMESPACE: "my-aks-namespace-github-actions"
-            
-            jobs:
-              # Job 1 : Build and push the image to ACR
-              DeploytoAKS:
-                permissions:
-                  contents: read
-                  id-token: write
-                runs-on: ubuntu-latest
-                environment: development
-                steps:
-                  # Checks out the repository this file is in
-                  
-                  - name: Check out repository
-                    uses: actions/checkout@v4
-                  
-                  - name: Setup .NET Core SDK
-                    uses: actions/setup-dotnet@v4.0.1
-                    with:
-                      dotnet-version: 8.0.x
-                      
-                  # Build .NET application 
-                  - name: dotnet build
-                    run: dotnet build docker-web-app/docker-web-app.sln -c release   
-                    
-                  # Logs in with your Azure credentials
-                  - name: Azure login
-                    uses: azure/login@v1.4.6
-                    with:
-                      creds: ${{ secrets.AZURE_CREDENTIALS }}      
-              
-                    # Builds and pushes an image up to your Azure Container Registry
-                  - name: Build and push image to ACR
-                    run: |
-                      az acr build --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.RESOURCE_GROUP }} . 
+                on:
+                  push:
+                    branches: ["main"]
+                  workflow_dispatch:
                 
-                  # Retrieves your Azure Kubernetes Service cluster's kubeconfig file
-                  - name: Get K8s context
-                    uses: azure/aks-set-context@v3
-                    with:
-                      creds: '${{secrets.AZURE_CREDENTIALS}}'
-                      resource-group: ${{ env.RESOURCE_GROUP }}
-                      cluster-name: ${{ env.CLUSTER_NAME }}
-            
-                  # Create K8s secrets to pull images
-                  - name: Create secret in Kubernetes cluster
-                    uses: Azure/k8s-create-secret@v4.0
-                    with:
-                      # Choose the target Kubernetes namespace. If the namespace is not provided, the commands will run in the default namespace.
-                      namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
-                      # Name of the secret. You can use this secret name in the Kubernetes YAML configuration file.
-                      secret-name: acr-secret
-                      # Container Registry URL
-                      container-registry-url: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
-                      # Container Registry user name
-                      container-registry-username: ${{ env.AZURE_CONTAINER_REGISTRY_USERNAME }}
-                      # Container Registry password
-                      container-registry-password: ${{ env.AZURE_CONTAINER_REGISTRY_PASSWORD }}
-                      # Container Registry email (optional even when using url,username,password)
-                      container-registry-email: unused
+                env:
+                  AZURE_CONTAINER_REGISTRY: "name-of-registry"
+                  AZURE_CONTAINER_REGISTRY_USERNAME: "acr-username"
+                  AZURE_CONTAINER_REGISTRY_PASSWORD: "acr-password"
+                  CONTAINER_NAME: "image-name"
+                  RESOURCE_GROUP: "RG-name"
+                  CLUSTER_NAME: "cluster-name"
+                  DEPLOYMENT_NAMESPACE: "my-aks-namespace-github-actions"
+                
+                jobs:
+                  # Job 1 : Build and push the image to ACR
+                  DeploytoAKS:
+                    permissions:
+                      contents: read
+                      id-token: write
+                    runs-on: ubuntu-latest
+                    environment: development
+                    steps:
+                      # Checks out the repository this file is in
+                      
+                      - name: Check out repository
+                        uses: actions/checkout@v4
+                      
+                      - name: Setup .NET Core SDK
+                        uses: actions/setup-dotnet@v4.0.1
+                        with:
+                          dotnet-version: 8.0.x
+                          
+                      # Build .NET application 
+                      - name: dotnet build
+                        run: dotnet build docker-web-app/docker-web-app.sln -c release   
+                        
+                      # Logs in with your Azure credentials
+                      - name: Azure login
+                        uses: azure/login@v1.4.6
+                        with:
+                          creds: ${{ secrets.AZURE_CREDENTIALS }}      
                   
-                  # Deploys application based on given manifest file
-                  - name: Deploys application
-                    uses: Azure/k8s-deploy@v4
-                    with:
-                      action: deploy
-                      namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
-                      manifests: |
-                        docker-web-app/manifest/K8s/01_apply_azure_blob_pv.yaml
-                        docker-web-app/manifest/K8s/02_apply_azure_blob_pvc.yaml
-                        docker-web-app/manifest/K8s/03_apply_azure_secret_blob.yaml
-                        docker-web-app/manifest/K8s/04_apply_docker_app_configMap.yaml
-                        docker-web-app/manifest/K8s/05_apply_docker_app_secret.yaml
-                        docker-web-app/manifest/K8s/06_apply_docker_app_deployment.yaml
-                        docker-web-app/manifest/K8s/07_apply_docker_app_service.yaml
-                        docker-web-app/manifest/K8s/08_apply_sqlserverdb_configMap.yaml
-                        docker-web-app/manifest/K8s/09_apply_sqlserverdb_deployment.yaml
-                        docker-web-app/manifest/K8s/10_apply_sqlserverdb-service.yaml
-                      images: |
-                        ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+                        # Builds and pushes an image up to your Azure Container Registry
+                      - name: Build and push image to ACR
+                        run: |
+                          az acr build --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.RESOURCE_GROUP }} . 
+                    
+                      # Retrieves your Azure Kubernetes Service cluster's kubeconfig file
+                      - name: Get K8s context
+                        uses: azure/aks-set-context@v3
+                        with:
+                          creds: '${{secrets.AZURE_CREDENTIALS}}'
+                          resource-group: ${{ env.RESOURCE_GROUP }}
+                          cluster-name: ${{ env.CLUSTER_NAME }}
+                
+                      # Create K8s secrets to pull images
+                      - name: Create secret in Kubernetes cluster
+                        uses: Azure/k8s-create-secret@v4.0
+                        with:
+                          # Choose the target Kubernetes namespace. If the namespace is not provided, the commands will run in the default namespace.
+                          namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
+                          # Name of the secret. You can use this secret name in the Kubernetes YAML configuration file.
+                          secret-name: acr-secret
+                          # Container Registry URL
+                          container-registry-url: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+                          # Container Registry user name
+                          container-registry-username: ${{ env.AZURE_CONTAINER_REGISTRY_USERNAME }}
+                          # Container Registry password
+                          container-registry-password: ${{ env.AZURE_CONTAINER_REGISTRY_PASSWORD }}
+                          # Container Registry email (optional even when using url,username,password)
+                          container-registry-email: unused
+                      
+                      # Deploys application based on given manifest file
+                      - name: Deploys application
+                        uses: Azure/k8s-deploy@v4
+                        with:
+                          action: deploy
+                          namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
+                          manifests: |
+                            docker-web-app/manifest/K8s/01_apply_azure_blob_pv.yaml
+                            docker-web-app/manifest/K8s/02_apply_azure_blob_pvc.yaml
+                            docker-web-app/manifest/K8s/03_apply_azure_secret_blob.yaml
+                            docker-web-app/manifest/K8s/04_apply_docker_app_configMap.yaml
+                            docker-web-app/manifest/K8s/05_apply_docker_app_secret.yaml
+                            docker-web-app/manifest/K8s/06_apply_docker_app_deployment.yaml
+                            docker-web-app/manifest/K8s/07_apply_docker_app_service.yaml
+                            docker-web-app/manifest/K8s/08_apply_sqlserverdb_configMap.yaml
+                            docker-web-app/manifest/K8s/09_apply_sqlserverdb_deployment.yaml
+                            docker-web-app/manifest/K8s/10_apply_sqlserverdb-service.yaml
+                          images: |
+                            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
 
-```
+    ```
 5. Once the template is ready, commit it into the repository and as soon as you commit the change, action will be started, and the application will be deployed.
 
-  ![Workflow Action](./images/workflowaction.png)
+   ![Workflow Action](./images/workflowaction.png)
 
 6. Verify Deployment – Now navigate to your K8s cluster and verify deployment, pods and service status.
 
-  ![Aks Cluster](./images/akscluster.png)
+    ![Aks Cluster](./images/akscluster.png)
 
-  Navigate to services and access the exposed “EXTERNAL IP” to access the application.
+    Navigate to services and access the exposed “EXTERNAL IP” to access the application.
 
-  ![Web App 2](./images/webapp2.png)
+    ![Web App 2](./images/webapp2.png)
 
 
-### 6.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)
+### 6.1.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)
 
 To build and deploy a .NET application to Azure Kubernetes Service (AKS) using Azure Pipelines, Azure Container Registry (ACR), and image pull secrets, you can follow these steps.
 
@@ -1022,6 +1031,243 @@ Extend your pipeline YAML to include a deployment stage:
 Now use the external IP exposed to access the application.
 
 ![Web App 3](./images/webapp3.png)
+
+### 6.1. SCENARIO - LINUX Containers
+
+### 6.2.1. Deployment using GITHUB actions
+
+1. Create a new namespace and call it as “my-aks-namespace-github-actions”. We will deploy our application inside this namespace.
+
+    ```bash
+    kubectl create namespace my-aks-namespace-github-actions
+    ```
+
+2. Configure GitHub Action -
+
+   GitHub Actions workflows run into Environments and they can reference an environment to use the environment’s protection rules and secrets. In this step, you will add a new Environment named development. Go to the repository on GitHub, go to the top-right menu, click Settings. Then from the left-side menu, click Environments, then from the right side click new environment.
+
+   ![Github Configuration](./images/githubconfig.png)   
+
+3. Create GitHub Secret -
+
+   In the result screen from your just created GitHub Environment development, you will see all details of the newly created Environment. Navigate to the bottom of section, go to Environment secrets and click Add Secret to add new secrets.
+
+   As we are using service principle for azure login, we will create the below AZURE_CREDENTIAL secret for az login. Below is the structure of the service principal secret.
+
+   ```json 
+   {
+    "clientId": "YOUR_CLIENT_ID",
+    "clientSecret": "YOUR_CLIENT_SECRET",
+    "tenantId": "YOUR_TENANT_ID",
+    "subscriptionId": "YOUR_SUBSCRIPTION_ID"
+    }    
+   ```
+
+    ![Environment Secrets](./images/environmentsecrets.png)
+
+  4. Add GitHub Action - 
+    Everything is now ready to start your automation with GitHub Action to AKS. GitHub actions workflows and jobs are defined with a YAML file containing all the needed steps.
+
+      Now navigate to GitHub repository and go to “Action” and click on “New Workflow” option. The following page will come
+
+        ![Workflow](./images/workflow.png)
+
+      Use this template and modify the template based on your needs. Below is the sample template to deploy our application to “my-aks-namespace-github-actions”.
+
+```bash
+name: Build and deploy an app to AKS
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  AZURE_CONTAINER_REGISTRY: "akswindemoreg"
+  CONTAINER_NAME: "windows-container-app"
+  RESOURCE_GROUP: "rg-apps"
+  CLUSTER_NAME: "demowinclu001"
+  DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
+  CONTAINER_TAG: "v1"
+
+jobs:
+  DeployWindowsContainerToAKS:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: windows-2022
+    environment: development
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Azure login
+      uses: azure/login@v1.4.6
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set AKS context
+      uses: azure/aks-set-context@v3
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        resource-group: ${{ env.RESOURCE_GROUP }}
+        cluster-name: ${{ env.CLUSTER_NAME }}
+
+    - name: Create namespace if not exists
+      run: |
+        kubectl get namespace ${{ env.DEPLOYMENT_NAMESPACE }} || kubectl create namespace ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Deploy application to AKS
+      uses: Azure/k8s-deploy@v4
+      with:
+        action: deploy
+        namespace: ${{ env.DEPLOYMENT_NAMESPACE }}
+        manifests: |
+          Deployments/01-windows-deployment.yaml
+          Deployments/02-windows-service.yaml
+        images: |
+          ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ env.CONTAINER_TAG }}
+
+    - name: Verify deployment rollout
+      run: |
+        kubectl rollout status deployment/windows-webapp -n ${{ env.DEPLOYMENT_NAMESPACE }}
+
+    - name: Get pods
+      run: |
+        kubectl get pods -n ${{ env.DEPLOYMENT_NAMESPACE }}
+```
+5. Once the template is ready, commit it into the repository and as soon as you commit the change, action will be started, and the application will be deployed.
+
+    ![alt text](images/aks-windows-container-14.png)
+
+
+6. Verify Deployment – Now navigate to your K8s cluster and verify deployment, pods and service status.
+
+    ![alt text](images/aks-windows-container-15.png)
+
+    Now browse, the service IP address and if everything is all good, you should be able to access the windows container application without any error.    
+
+    ![alt text](images/aks-windows-container-16.png)
+
+### 6.2.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)
+
+We will be working on the same application that we have been working on so far. In this demo, we will use the previous Github repository as the pipeline source code.
+
+1. Create a Service Connection: We have two create two service connections now.
+
+    - Github : First create a service connection with GitHub to access the source code repository.
+
+    - Azure Resource Manager : This service connection will provide access to our azure resources residing in our subscription.
+
+2. Create New Pipeline
+
+   Let's create the pipleline. Do the following steps/
+
+   a. Select the repository. In our case,It's GitHub and we have already created the service connection.
+
+   ![alt text](images/aks-windows-container-17.png)
+
+   ![alt text](images/aks-windows-container-18.png)
+
+   In our case, we are using the starter template and will enhance it.
+
+   ![alt text](images/aks-windows-container-19.png)
+
+   ![alt text](images/aks-windows-container-20.png)
+
+3. Create the YAML template -
+
+   Now, let's work on the template. For simplicity, paste the below templated code. you can enhnace on top of it, based on your requirement.
+
+```yaml
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  AZURE_SUBSCRIPTION: 'aks-windows-demo-panchsan-sc'
+  RESOURCE_GROUP: 'rg-apps'
+  AKS_CLUSTER: 'demowinclu001'
+  NAMESPACE: 'windows-aks-ns-devops'
+  ACR_NAME: 'akswindemoreg'
+  IMAGE_NAME: 'windows-container-app'
+  IMAGE_TAG: 'v1'
+  IMAGE_FULL_PATH: 'akswindemoreg.azurecr.io/windows-container-app:v1'
+
+pool:
+  vmImage: 'windows-latest'
+
+stages:
+- stage: Deploy
+  displayName: Deploy to AKS
+  jobs:
+  - job: DeployJob
+    displayName: Deploy Windows Container App
+    steps:
+
+    # Azure CLI Login & ACR Login
+    - task: AzureCLI@2
+      displayName: 'Login to Azure and ACR'
+      inputs:
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Logging into ACR: $(ACR_NAME)"
+          az acr login --name $(ACR_NAME)
+
+    # Set AKS context and ensure namespace exists
+    - task: AzureCLI@2
+      displayName: 'Set AKS Context and Ensure Namespace'
+      inputs:
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Setting context to AKS cluster: $(AKS_CLUSTER)"
+          az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(AKS_CLUSTER) --overwrite-existing
+
+          echo "Checking or creating namespace: $(NAMESPACE)"
+          kubectl get namespace $(NAMESPACE) || kubectl create namespace $(NAMESPACE)
+
+    # Apply Kubernetes manifests
+    - task: AzureCLI@2
+      displayName: 'Deploy Kubernetes Manifests'
+      inputs:
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Deploying Kubernetes manifests..."
+          kubectl apply -f Deployments/00-windows-namespace.yaml
+          kubectl apply -f Deployments/01-windows-deployment.yaml -n $(NAMESPACE)
+          kubectl apply -f Deployments/02-windows-service.yaml -n $(NAMESPACE)
+
+    # Wait for rollout to complete
+    - task: AzureCLI@2
+      displayName: 'Wait for Deployment Rollout'
+      inputs:
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/windows-webapp -n $(NAMESPACE)
+```
+
+4.	Running the pipeline and the deployment should be completed.
+
+    ![alt text](images/aks-windows-container-21.png)
+
+5.	Verify Deployment – Now navigate to your K8s cluster and verify deployment, pods and service status.
+
+    ![alt text](images/aks-windows-container-22.png)
+
+    Now browse, the service IP address and if everything is all good, you should be able to access the windows container application without any error.    
+
+    ![alt text](images/aks-windows-container-16.png)
 
 ### 6.3 Deployment using Azure Classic Pipelines (Azure DevOps Pipelines)
 
