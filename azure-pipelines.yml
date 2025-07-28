@@ -4,7 +4,7 @@ trigger:
       - main
 
 variables:
-  AZURE_SUBSCRIPTION: 'aks-windows-demo-panchsan-sc'
+  AZURE_SUBSCRIPTION: 'spn-aks-windows-container-deployment'
   RESOURCE_GROUP: 'rg-apps-passmig-asia-v-santanup-demo'
   AKS_CLUSTER: 'demowinclu001'
   NAMESPACE: 'windows-aks-ns-devops'
