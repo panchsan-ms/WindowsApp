@@ -4,36 +4,27 @@ trigger:
       - main
 
 variables:
-  DEPLOYMENT_NAMESPACE: "windows-aks-ns-devops"
-  AZURE_CONTAINER_REGISTRY: "akswindemoreg.azurecr.io"
-  CONTAINER_NAME: "windows-container-app"
-  CONTAINER_TAG: "v1"
-  IMAGE_FULL_PATH: "$(AZURE_CONTAINER_REGISTRY)/$(CONTAINER_NAME):$(CONTAINER_TAG)"
-
-  AKS_CLUSTER_NAME: "demowinclu001"
-  AKS_RESOURCE_GROUP: "rg-apps-passmig-asia-v-santanup-demo"
-
-  AZURE_SUBSCRIPTION: "aks-windows-demo-panchsan-sc" # Azure RM Service Connection
-  KUBE_SERVICE_CONNECTION: "demowinclu001-aks-windows-ado-ns" # Kubernetes Service Connection
+  AZURE_SUBSCRIPTION: 'aks-windows-demo-panchsan-sc'
+  RESOURCE_GROUP: 'rg-apps-passmig-asia-v-santanup-demo'
+  AKS_CLUSTER: 'demowinclu001'
+  NAMESPACE: 'windows-aks-ns-devops'
+  ACR_NAME: 'akswindemoreg'
+  IMAGE_NAME: 'windows-container-app'
+  IMAGE_TAG: 'v1'
+  IMAGE_FULL_PATH: 'akswindemoreg.azurecr.io/windows-container-app:v1'
 
 pool:
-  vmImage: 'windows-2022'
+  vmImage: 'windows-latest'
 
 stages:
 - stage: Deploy
-  displayName: Deploy Windows Container to AKS
+  displayName: Deploy to AKS
   jobs:
   - job: DeployJob
-    displayName: Deploy to AKS
+    displayName: Deploy Windows Container App
     steps:
 
-    # Step 1: Install kubectl if not present
-    - task: KubectlInstaller@0
-      displayName: 'Install kubectl'
-      inputs:
-        kubectlVersion: 'latest'
-
-    # Step 2: Login to Azure and ACR
+    # Azure CLI Login & ACR Login
     - task: AzureCLI@2
       displayName: 'Login to Azure and ACR'
       inputs:
@@ -41,42 +32,43 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Logging into Azure"
-          az acr login --name $(AZURE_CONTAINER_REGISTRY)
+          echo "Logging into ACR: $(ACR_NAME)"
+          az acr login --name $(ACR_NAME)
 
-    # Step 3: Set AKS context and create namespace if missing
+    # Set AKS context and ensure namespace exists
     - task: AzureCLI@2
-      displayName: 'Set AKS Context & Create Namespace'
+      displayName: 'Set AKS Context and Ensure Namespace'
       inputs:
         azureSubscription: $(AZURE_SUBSCRIPTION)
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Setting AKS context..."
-          az aks get-credentials --resource-group $(AKS_RESOURCE_GROUP) --name $(AKS_CLUSTER_NAME) --overwrite-existing
+          echo "Setting context to AKS cluster: $(AKS_CLUSTER)"
+          az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(AKS_CLUSTER) --overwrite-existing
 
-          echo "Checking/Creating Namespace: $(DEPLOYMENT_NAMESPACE)"
-          kubectl get namespace $(DEPLOYMENT_NAMESPACE) || kubectl create namespace $(DEPLOYMENT_NAMESPACE)
+          echo "Checking or creating namespace: $(NAMESPACE)"
+          kubectl get namespace $(NAMESPACE) || kubectl create namespace $(NAMESPACE)
 
-    # Step 4: Deploy manifests with image substitution
-    - task: KubernetesManifest@1
-      displayName: 'Deploy Windows Web App'
+    # Apply Kubernetes manifests
+    - task: AzureCLI@2
+      displayName: 'Deploy Kubernetes Manifests'
       inputs:
-        action: deploy
-        kubernetesServiceConnection: $(KUBE_SERVICE_CONNECTION)
-        namespace: $(DEPLOYMENT_NAMESPACE)
-        manifests: |
-          Deployments/01-windows-deployment.yaml
-          Deployments/02-windows-service.yaml
-        containers: |
-          $(IMAGE_FULL_PATH)
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Deploying Kubernetes manifests..."
+          kubectl apply -f Deployments/00-windows-namespace.yaml
+          kubectl apply -f Deployments/01-windows-deployment.yaml -n $(NAMESPACE)
+          kubectl apply -f Deployments/02-windows-service.yaml -n $(NAMESPACE)
 
-    # Step 5: Wait for rollout to complete
-    - task: Kubernetes@1
+    # Wait for rollout to complete
+    - task: AzureCLI@2
       displayName: 'Wait for Deployment Rollout'
       inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: $(KUBE_SERVICE_CONNECTION)
-        namespace: $(DEPLOYMENT_NAMESPACE)
-        command: rollout
-        arguments: 'status deployment/windows-webapp'
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/windows-webapp -n $(NAMESPACE)
