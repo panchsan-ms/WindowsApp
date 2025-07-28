@@ -4,38 +4,41 @@ trigger:
       - main
 
 variables:
-  DEPLOYMENT_NAMESPACE: "my-windows-aks-ns"
-  AZURE_CONTAINER_REGISTRY: "akswindemoreg.azurecr.io"
-  CONTAINER_NAME: "windows-container-app"
-  CONTAINER_TAG: "v1"
-  IMAGE_FULL_PATH: "$(AZURE_CONTAINER_REGISTRY)/$(CONTAINER_NAME):$(CONTAINER_TAG)"
+  # Set your values here
+  ACR_NAME: 'akswindemoreg'
+  IMAGE_NAME: 'windows-container-app'
+  IMAGE_TAG: 'v1'
+  IMAGE_FULL_PATH: '$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)'
+  K8S_NAMESPACE: 'my-windows-aks-ns'
 
 pool:
   vmImage: 'windows-2022'
 
 stages:
 - stage: Deploy
-  displayName: Deploy Windows Container to AKS
+  displayName: Deploy Windows App to AKS
   jobs:
   - job: DeployJob
     displayName: Deploy to AKS
     steps:
+    - task: Checkout@1
 
+    # Optional: Ensure ACR login (for later image validation/debug)
     - task: AzureCLI@2
       displayName: 'Login to Azure and ACR'
       inputs:
-        azureSubscription: 'aks-windows-demo-panchsan-sc' # Replace with your Azure RM connection
+        azureSubscription: 'aks-windows-demo-panchsan-sc'  # Azure RM service connection
         scriptType: 'ps'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          az account show
-          az acr login --name $(AZURE_CONTAINER_REGISTRY)
+          az acr login --name $(ACR_NAME)
 
+    # Ensure namespace exists
     - task: Kubernetes@1
-      displayName: 'Create Namespace (if not exists)'
+      displayName: 'Create Namespace if Not Exists'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc' # Replace with your AKS service connection
+        kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns' # Kubernestes service connection
         namespace: default
         command: apply
         useConfigurationFile: true
@@ -43,25 +46,27 @@ stages:
           apiVersion: v1
           kind: Namespace
           metadata:
-            name: $(DEPLOYMENT_NAMESPACE)
+            name: $(K8S_NAMESPACE)
 
-    - task: Kubernetes@1
-      displayName: 'Deploy Manifest Files'
+    # Deploy manifests (deployment + service)
+    - task: KubernetesManifest@1
+      name: DeployToAKS
+      displayName: 'Deploy Windows Deployment & Service'
       inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc'
-        namespace: $(DEPLOYMENT_NAMESPACE)
-        command: apply
-        useConfigurationFile: true
-        configuration: |
+        kubernetesServiceConnection: 'demowinclu001-aks-windows-ado-ns' # Kubernestes service connection
+        namespace: $(K8S_NAMESPACE)
+        manifests: |
           Deployment/windows-deployment.yaml
           Deployment/windows-service.yaml
+        containers: |
+          $(IMAGE_FULL_PATH)
 
+    # Optional: Wait for rollout to complete
     - task: Kubernetes@1
-      displayName: 'Check Rollout Status'
+      displayName: 'Wait for Deployment Rollout'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'aks-windows-demo-panchsan-sc'
-        namespace: $(DEPLOYMENT_NAMESPACE)
-        command: rollout
-        arguments: 'status deployment/windows-deployment'
+        kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns' # Kubernestes service connection
+        namespace: $(K8S_NAMESPACE)
+        command: 'custom'
+        arguments: 'rollout status deployment/windows-deployment'
