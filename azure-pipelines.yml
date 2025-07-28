@@ -9,8 +9,10 @@ variables:
   CONTAINER_NAME: "windows-container-app"
   CONTAINER_TAG: "v1"
   IMAGE_FULL_PATH: "$(AZURE_CONTAINER_REGISTRY)/$(CONTAINER_NAME):$(CONTAINER_TAG)"
-  AKS_CLUSTER_NAME: "demowinclu001"  # replace with your actual AKS name
-  RESOURCE_GROUP: "rg-apps-passmig-asia-v-santanup-demo"  # replace with your actual resource group
+  AKS_CLUSTER_NAME: "demowinclu001"
+  AKS_RESOURCE_GROUP: "rg-apps-passmig-asia-v-santanup-demo"
+  AZURE_SUBSCRIPTION: "aks-windows-demo-panchsan-sc" # Azure RM Service Connection Name
+  KUBE_SERVICE_CONNECTION: "demowinclu001-aks-windows-ado-ns" # Kubernetes Service Connection Name
 
 pool:
   vmImage: 'windows-2022'
@@ -23,32 +25,43 @@ stages:
     displayName: Deploy to AKS
     steps:
 
+    # Install kubectl if not available
+    - task: KubectlInstaller@0
+      displayName: 'Install kubectl'
+      inputs:
+        kubectlVersion: 'latest'
+
+    # Login to Azure and ACR
     - task: AzureCLI@2
       displayName: 'Login to Azure and ACR'
       inputs:
-        azureSubscription: 'aks-windows-demo-panchsan-sc'  # your Azure RM connection
-        scriptType: 'ps'
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          az account show
+          echo "Logging into Azure"
           az acr login --name $(AZURE_CONTAINER_REGISTRY)
 
+    # Set kubectl context and create namespace if it doesn't exist
     - task: AzureCLI@2
-      displayName: 'Set AKS Context and Create Namespace (if not exists)'
+      displayName: 'Set AKS context and create namespace'
       inputs:
-        azureSubscription: 'aks-windows-demo-panchsan-sc'
-        scriptType: 'ps'
+        azureSubscription: $(AZURE_SUBSCRIPTION)
+        scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          az aks get-credentials --name $(AKS_CLUSTER_NAME) --resource-group $(RESOURCE_GROUP) --overwrite-existing
-          kubectl apply -f Deployments/00-windows-namespace.yaml --validate=false
+          echo "Setting AKS context"
+          az aks get-credentials --resource-group $(AKS_RESOURCE_GROUP) --name $(AKS_CLUSTER_NAME) --overwrite-existing
 
+          echo "Creating namespace if not exists"
+          kubectl get namespace $(DEPLOYMENT_NAMESPACE) || kubectl create namespace $(DEPLOYMENT_NAMESPACE)
+
+    # Deploy manifest with image substitution
     - task: KubernetesManifest@1
-      name: DeployToAks
       displayName: 'Deploy Windows Web App'
       inputs:
         action: deploy
-        kubernetesServiceConnection: 'demowinclu001-aks-windows-ado-ns'
+        kubernetesServiceConnection: $(KUBE_SERVICE_CONNECTION)
         namespace: $(DEPLOYMENT_NAMESPACE)
         manifests: |
           Deployments/01-windows-deployment.yaml
@@ -56,11 +69,12 @@ stages:
         containers: |
           $(IMAGE_FULL_PATH)
 
+    # Wait for rollout completion
     - task: Kubernetes@1
       displayName: 'Wait for Deployment Rollout'
       inputs:
         connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'demowinclu001-aks-windows-ado-ns'
+        kubernetesServiceEndpoint: $(KUBE_SERVICE_CONNECTION)
         namespace: $(DEPLOYMENT_NAMESPACE)
         command: rollout
         arguments: 'status deployment/windows-webapp'
