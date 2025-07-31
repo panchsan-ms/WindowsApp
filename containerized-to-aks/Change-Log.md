@@ -8,7 +8,7 @@ This section represents the change history of the document. Revisions of the doc
 | 16-08-2024  | V2.0        | Added GitHub actions deployment model | Santanu Panchadhyay        | Subhra Bhattacharjee        |           |
 | 24-08-2024  | V3.0        | Added Azure pipelines YAML and classic template model | Santanu Panchadhyay,Dharmendra Singh        | Subhra Bhattacharjee        |           |
 | 08-10-2024  | V4.0        | Image re-alignment, font correction and sentence correction | Mathu Vijayakumar Amutha        | Santanu Panchadhyay        |           |
-| 28-07-2025  | V5.0        | Windows Container deployment scenario added for AKS Runbook | Santanu Panchadhyay        | Pradeep  Mamidi        |           |
+| 31-07-2025  | V5.0        | Windows Container deployment scenario added for AKS Runbook | Santanu Panchadhyay        | Pradeep  Mamidi        |           |
 
 ---
 

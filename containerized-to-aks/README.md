@@ -34,11 +34,11 @@
 6. [**Deploying application using CICD Pipelines:**](#6-deploying-application-using-cicd-pipelines)    
 
   - [6.1 SCENARIO - LINUX Containers](#61-scenario---linux-containers)
-    - [6.1.1 Deployment using GITHUB actions](#611-deployment-using-github-actions)
+    - [6.1.1 Deployment using GITHUB Actions](#611-deployment-using-github-actions)
     - [6.1.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)](#612-deployment-using-azure-pipelines-yaml-azure-devops-pipelines)  
 
   - [6.2 SCENARIO - WINDOWS Containers](#62-scenario---windows-containers)
-    - [6.2.1 Deployment using GITHUB actions](#621-deployment-using-github-actions)
+    - [6.2.1 Deployment using GITHUB Actions](#621-deployment-using-github-actions)
     - [6.2.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)](#622-deployment-using-azure-pipelines-yaml-azure-devops-pipelines)
    - [6.3 Deployment using Azure Classic Pipelines (Azure DevOps Pipelines)](#63-deployment-using-azure-classic-pipelines-azure-devops-pipelines)
        - [6.3.1 Push our existing code to azure repositories:](#631-push-our-existing-code-to-azure-repositories)
