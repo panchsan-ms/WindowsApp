@@ -24,7 +24,7 @@
    - [5.1.4 Deploy an application to Azure Kubernetes Service (AKS)](#514-deploy-an-application-to-azure-kubernetes-service-aks)
    - [5.1.5 Use Persistent Volume (PV) and Persistent Volume Claim (PVC) in the deployment.](#515-use-persistent-volume-pv-and-persistent-volume-claim-pvc-in-the-deployment)
 
- - [5.2 SCENARIO - WINDOWS Containers](#52-scenario---windows-containers)
+ - [5.2 SCENARIO - WINDOWS Containers (** NEW **)](#52-scenario---windows-containers)
 
     - [5.1.1 Prepare an application for Azure Kubernetes Service (AKS)](#521--prepare-a-windows-based-application-for-azure-kubernetes-service)
     - [5.1.2 Create an Azure Container Registry (ACR) and push build images](#522create-an-azure-container-registry-acr-and-push-build-images)
@@ -37,7 +37,7 @@
     - [6.1.1 Deployment using GITHUB Actions](#611-deployment-using-github-actions)
     - [6.1.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)](#612-deployment-using-azure-pipelines-yaml-azure-devops-pipelines)  
 
-  - [6.2 SCENARIO - WINDOWS Containers](#62-scenario---windows-containers)
+  - [6.2 SCENARIO - WINDOWS Containers (** NEW**)](#62-scenario---windows-containers)
     - [6.2.1 Deployment using GITHUB Actions](#621-deployment-using-github-actions)
     - [6.2.2 Deployment using Azure Pipelines YAML (Azure DevOps Pipelines)](#622-deployment-using-azure-pipelines-yaml-azure-devops-pipelines)
    - [6.3 Deployment using Azure Classic Pipelines (Azure DevOps Pipelines)](#63-deployment-using-azure-classic-pipelines-azure-devops-pipelines)
